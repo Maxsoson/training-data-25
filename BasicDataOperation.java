@@ -4,7 +4,7 @@ public class BasicDataOperation {
     static final String PATH_TO_DATA_FILE = "list/short.data";
 
     short shortValueToSearch;
-    short[] shortArray;
+    Short[] shortArray;
 
     private static final String SEPARATOR = "\n" + "=".repeat(80) + "\n";
 

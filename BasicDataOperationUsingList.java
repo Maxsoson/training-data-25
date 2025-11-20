@@ -1,15 +1,15 @@
 import java.util.*;
+import java.util.stream.Collectors; // Додай цей імпорт для використання Collectors
 
 public class BasicDataOperationUsingList {
     private short shortValueToSearch;
-    private short[] shortArray;
+    private Short[] shortArray;
     private List<Short> shortList;
 
-    BasicDataOperationUsingList(short shortValueToSearch, short[] shortArray) {
+    BasicDataOperationUsingList(short shortValueToSearch, Short[] shortArray) {
         this.shortValueToSearch = shortValueToSearch;
         this.shortArray = shortArray;
-        this.shortList = new ArrayList<>();
-        for (short s : shortArray) shortList.add(s);
+        this.shortList = new ArrayList<>(Arrays.asList(shortArray));
     }
 
     public void executeDataOperations() {
@@ -30,15 +30,24 @@ public class BasicDataOperationUsingList {
         DataFileHandler.writeArrayToFile(shortArray, BasicDataOperation.PATH_TO_DATA_FILE + ".sorted");
     }
 
+    // 2.4.1 – сортування масиву через Stream API
     void performArraySorting() {
         long start = System.nanoTime();
-        Arrays.sort(shortArray);
+        shortArray = Arrays.stream(shortArray)
+                .sorted()
+                .toArray(Short[]::new);
         PerformanceTracker.displayOperationTime(start, "упорядкування масиву short");
     }
 
+    // 2.4.2 – пошук у масиві через Stream API
     void findInArray() {
         long start = System.nanoTime();
-        int pos = Arrays.binarySearch(shortArray, shortValueToSearch);
+        int pos = Arrays.stream(shortArray)
+                .map(Arrays.asList(shortArray)::indexOf)
+                .filter(i -> shortValueToSearch == shortArray[i])
+                .findFirst()
+                .orElse(-1);
+
         PerformanceTracker.displayOperationTime(start, "пошук елемента в масиві short");
         if (pos >= 0)
             System.out.println("Елемент '" + shortValueToSearch + "' знайдено на позиції: " + pos);
@@ -46,21 +55,32 @@ public class BasicDataOperationUsingList {
             System.out.println("Елемент '" + shortValueToSearch + "' відсутній у масиві.");
     }
 
+    // 2.4.3 – min/max у масиві через Stream API
     void locateMinMaxInArray() {
         if (shortArray.length == 0) return;
         long start = System.nanoTime();
-        short min = shortArray[0], max = shortArray[0];
-        for (short s : shortArray) {
-            if (s < min) min = s;
-            if (s > max) max = s;
-        }
+
+        Short min = Arrays.stream(shortArray)
+                .min(Short::compareTo)
+                .orElse(null);
+
+        Short max = Arrays.stream(shortArray)
+                .max(Short::compareTo)
+                .orElse(null);
+
         PerformanceTracker.displayOperationTime(start, "визначення min і max у масиві short");
         System.out.println("Min: " + min + " | Max: " + max);
     }
 
+    // 2.5.1 – пошук у списку через Stream API
     void findInList() {
         long start = System.nanoTime();
-        int pos = Collections.binarySearch(shortList, shortValueToSearch);
+        int pos = shortList.stream()
+                .map(shortList::indexOf)
+                .filter(i -> shortValueToSearch == shortList.get(i))
+                .findFirst()
+                .orElse(-1);
+
         PerformanceTracker.displayOperationTime(start, "пошук елемента в ArrayList short");
         if (pos >= 0)
             System.out.println("Елемент '" + shortValueToSearch + "' знайдено у списку на позиції: " + pos);
@@ -77,9 +97,13 @@ public class BasicDataOperationUsingList {
         System.out.println("Min: " + min + " | Max: " + max);
     }
 
+    // 2.5.1 – сортування списку через Stream API
     void sortList() {
         long start = System.nanoTime();
-        Collections.sort(shortList);
+        shortList = shortList.stream()
+              .sorted()
+             .collect(Collectors.toList());  // замість toList() використовуємо collect(Collectors.toList())
         PerformanceTracker.displayOperationTime(start, "упорядкування ArrayList short");
     }
+
 }
