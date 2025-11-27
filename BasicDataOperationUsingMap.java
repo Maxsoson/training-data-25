@@ -1,10 +1,10 @@
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Клас BasicDataOperationUsingMap реалізує операції з колекціями типу Map для зберігання пар "кінь – власник".
- * 
  * Порівнюється продуктивність LinkedHashMap та TreeMap.
  */
 public class BasicDataOperationUsingMap {
@@ -17,14 +17,6 @@ public class BasicDataOperationUsingMap {
 
     private LinkedHashMap<Horse, String> linkedHashMap;
     private TreeMap<Horse, String> treeMap;
-
-    // Компаратор для сортування за значеннями (іменами власників)
-    static class OwnerValueComparator implements Comparator<Map.Entry<Horse, String>> {
-        @Override
-        public int compare(Map.Entry<Horse, String> e1, Map.Entry<Horse, String> e2) {
-            return e1.getValue().compareTo(e2.getValue());
-        }
-    }
 
     /**
      * Клас Horse — ключ у Map
@@ -110,22 +102,25 @@ public class BasicDataOperationUsingMap {
     }
 
     // ======== LinkedHashMap methods ========
+
     private void printMap(Map<Horse, String> map, String title) {
         System.out.println("\n=== " + title + " ===");
         long start = System.nanoTime();
-        for (Map.Entry<Horse, String> e : map.entrySet()) {
-            System.out.println("  " + e.getKey() + " -> " + e.getValue());
-        }
+        map.entrySet().stream()
+            .forEach(entry -> System.out.println("  " + entry.getKey() + " -> " + entry.getValue()));
         displayTime(start, "виведення " + title);
     }
 
     private void sortLinkedHashMap() {
         long start = System.nanoTime();
-        List<Map.Entry<Horse, String>> entries = new ArrayList<>(linkedHashMap.entrySet());
-        entries.sort(Map.Entry.comparingByKey()); // за природним порядком Horse
-        LinkedHashMap<Horse, String> sorted = new LinkedHashMap<>();
-        for (Map.Entry<Horse, String> e : entries) sorted.put(e.getKey(), e.getValue());
-        linkedHashMap = sorted;
+        linkedHashMap = linkedHashMap.entrySet().stream()
+            .sorted(Map.Entry.comparingByKey())  // Сортуємо за ключами
+            .collect(Collectors.toMap(
+                    Map.Entry::getKey,
+                    Map.Entry::getValue,
+                    (e1, e2) -> e1,  // Якщо є конфлікт, вибираємо перший
+                    LinkedHashMap::new  // Використовуємо LinkedHashMap для збереження порядку
+            ));
         displayTime(start, "сортування LinkedHashMap за ключами");
     }
 
@@ -141,25 +136,24 @@ public class BasicDataOperationUsingMap {
 
     private void findByValueInLinkedHashMap() {
         long start = System.nanoTime();
-        List<Map.Entry<Horse, String>> entries = new ArrayList<>(linkedHashMap.entrySet());
-        entries.sort(new OwnerValueComparator());
+    
+        // Перетворюємо запис в список і сортуємо за значеннями (власниками)
+        List<Map.Entry<Horse, String>> entries = linkedHashMap.entrySet().stream()
+            .sorted(Map.Entry.comparingByValue()) // Сортуємо за значенням
+            .collect(Collectors.toList());
 
-        // створюємо штучний запис для пошуку без Map.entry()
-        Map.Entry<Horse, String> searchEntry = new Map.Entry<Horse, String>() {
-            public Horse getKey() { return null; }
-            public String getValue() { return VALUE_TO_SEARCH_AND_DELETE; }
-            public String setValue(String value) { return null; }
-        };
+        // Шукаємо значення в списку
+        Optional<Map.Entry<Horse, String>> result = entries.stream()
+            .filter(entry -> entry.getValue().equals(VALUE_TO_SEARCH_AND_DELETE))
+            .findFirst();
 
-        int pos = Collections.binarySearch(entries, searchEntry, new OwnerValueComparator());
-        displayTime(start, "бінарний пошук за значенням в LinkedHashMap");
+        displayTime(start, "пошук за значенням в LinkedHashMap");
 
-        if (pos >= 0)
-            System.out.println("Власника '" + VALUE_TO_SEARCH_AND_DELETE + "' знайдено: " + entries.get(pos).getKey());
+        if (result.isPresent())
+            System.out.println("Власника '" + VALUE_TO_SEARCH_AND_DELETE + "' знайдено: " + result.get().getKey());
         else
             System.out.println("Власник '" + VALUE_TO_SEARCH_AND_DELETE + "' не знайдений.");
     }
-
 
     private void addEntryToLinkedHashMap() {
         long start = System.nanoTime();
@@ -180,15 +174,18 @@ public class BasicDataOperationUsingMap {
 
     private void removeByValueFromLinkedHashMap() {
         long start = System.nanoTime();
-        List<Horse> toRemove = new ArrayList<>();
-        for (Map.Entry<Horse, String> e : linkedHashMap.entrySet())
-            if (e.getValue().equals(VALUE_TO_SEARCH_AND_DELETE)) toRemove.add(e.getKey());
+        List<Horse> toRemove = linkedHashMap.entrySet().stream()
+            .filter(entry -> entry.getValue().equals(VALUE_TO_SEARCH_AND_DELETE))
+            .map(Map.Entry::getKey)
+            .collect(Collectors.toList());
+
         toRemove.forEach(linkedHashMap::remove);
         displayTime(start, "видалення за значенням з LinkedHashMap");
         System.out.println("Видалено " + toRemove.size() + " запис(ів) з власником '" + VALUE_TO_SEARCH_AND_DELETE + "'");
     }
 
     // ======== TreeMap methods ========
+
     private void findByKeyInTreeMap() {
         long start = System.nanoTime();
         boolean found = treeMap.containsKey(KEY_TO_SEARCH_AND_DELETE);
@@ -201,25 +198,24 @@ public class BasicDataOperationUsingMap {
 
     private void findByValueInTreeMap() {
         long start = System.nanoTime();
-        List<Map.Entry<Horse, String>> entries = new ArrayList<>(treeMap.entrySet());
-        entries.sort(new OwnerValueComparator());
     
-        // створюємо штучний запис для пошуку без Map.entry()
-        Map.Entry<Horse, String> searchEntry = new Map.Entry<Horse, String>() {
-            public Horse getKey() { return null; }
-            public String getValue() { return VALUE_TO_SEARCH_AND_DELETE; }
-            public String setValue(String value) { return null; }
-        };
-    
-        int pos = Collections.binarySearch(entries, searchEntry, new OwnerValueComparator());
-        displayTime(start, "бінарний пошук за значенням в TreeMap");
-    
-        if (pos >= 0)
-            System.out.println("Власника '" + VALUE_TO_SEARCH_AND_DELETE + "' знайдено: " + entries.get(pos).getKey());
+        // Перетворюємо запис в список і сортуємо за значеннями (власниками)
+        List<Map.Entry<Horse, String>> entries = treeMap.entrySet().stream()
+            .sorted(Map.Entry.comparingByValue()) // Сортуємо за значенням
+            .collect(Collectors.toList());
+
+        // Шукаємо значення в списку
+        Optional<Map.Entry<Horse, String>> result = entries.stream()
+            .filter(entry -> entry.getValue().equals(VALUE_TO_SEARCH_AND_DELETE))
+            .findFirst();
+
+        displayTime(start, "пошук за значенням в TreeMap");
+
+        if (result.isPresent())
+            System.out.println("Власника '" + VALUE_TO_SEARCH_AND_DELETE + "' знайдено: " + result.get().getKey());
         else
             System.out.println("Власник '" + VALUE_TO_SEARCH_AND_DELETE + "' не знайдений.");
     }
-
 
     private void addEntryToTreeMap() {
         long start = System.nanoTime();
@@ -240,9 +236,11 @@ public class BasicDataOperationUsingMap {
 
     private void removeByValueFromTreeMap() {
         long start = System.nanoTime();
-        List<Horse> toRemove = new ArrayList<>();
-        for (Map.Entry<Horse, String> e : treeMap.entrySet())
-            if (e.getValue().equals(VALUE_TO_SEARCH_AND_DELETE)) toRemove.add(e.getKey());
+        List<Horse> toRemove = treeMap.entrySet().stream()
+            .filter(entry -> entry.getValue().equals(VALUE_TO_SEARCH_AND_DELETE))
+            .map(Map.Entry::getKey)
+            .collect(Collectors.toList());
+
         toRemove.forEach(treeMap::remove);
         displayTime(start, "видалення за значенням з TreeMap");
         System.out.println("Видалено " + toRemove.size() + " запис(ів) з власником '" + VALUE_TO_SEARCH_AND_DELETE + "'");
