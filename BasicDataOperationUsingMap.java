@@ -90,15 +90,31 @@ public class BasicDataOperationUsingMap {
     }
 
     private void addEntry(Map<Horse, String> map) {
+        long start = System.nanoTime();
         map.put(KEY_TO_ADD, VALUE_TO_ADD);
+        long end = System.nanoTime();
+
+        System.out.println(map.getClass().getSimpleName() + " - Додавання пари (put): " + (end - start) + " нс");
     }
 
     private void removeByKey(Map<Horse, String> map) {
-        map.remove(KEY_TO_SEARCH_AND_DELETE);
+        long start = System.nanoTime();
+        Object removed = map.remove(KEY_TO_SEARCH_AND_DELETE);
+        long end = System.nanoTime();
+
+        System.out.println(map.getClass().getSimpleName() + " - Видалення за ключем (remove): " + (end - start) + " нс");
+        System.out.println(removed != null ? "Видалено за ключем" : "Ключ не знайдено");
     }
 
     private void removeByValue(Map<Horse, String> map) {
-        map.values().removeIf(v -> v.equals(VALUE_TO_SEARCH_AND_DELETE));
+        int before = map.size();
+        long start = System.nanoTime();
+        boolean anyRemoved = map.values().removeIf(v -> v.equals(VALUE_TO_SEARCH_AND_DELETE));
+        long end = System.nanoTime();
+        int after = map.size();
+
+        System.out.println(map.getClass().getSimpleName() + " - Видалення за значенням (removeIf): " + (end - start) + " нс");
+        System.out.println("Кількість видалених елементів: " + (before - after) + (anyRemoved ? "" : " (0)"));
     }
 
     private void comparePerformance() {
